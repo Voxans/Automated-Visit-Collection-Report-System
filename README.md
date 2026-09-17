@@ -332,7 +332,7 @@ URL tersebut merupakan public endpoint menuju Evolution API. Masukkan URL terseb
 
 Contoh:
 
-```poweshell
+```javascript
 EVOLUTION_API_URL:
     'https://random-name.trycloudflare.com'
 ```
@@ -521,7 +521,7 @@ milik Anda.
 
 Pada file bernama `webhook.json`, ubah bagian:
 
-```powershell
+```json
 "url": "GOOGLE_APPS_SCRIPT_WEB_APP_DEPLOY_URL",
 ```
 
@@ -529,8 +529,8 @@ dengan URL Web App anda
 
 Contoh:
 
-```powershell
-"url": "[GOOGLE_APPS_SCRIPT_WEB_APP_DEPLOY_URL](https://script.google.com/macros/s/DEPLOYMENT_ID/exec)",
+```json
+"url": "https://script.google.com/macros/s/DEPLOYMENT_ID/exec",
 ```
 
 Selanjutnya, jalankan
