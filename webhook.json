@@ -1,0 +1,11 @@
+﻿{
+  "webhook": {
+    "enabled": true,
+    "url": "https://script.google.com/macros/s/AKfycbygDrXbLySvKmagQAewDN4ab8phC5E5kVDn4dl7LNZ7YFs_NCUkt7d8RM8O9FIWVVxg/exec",
+    "webhookByEvents": false,
+    "base64": true,
+    "events": [
+      "MESSAGES_UPSERT"
+    ]
+  }
+}
