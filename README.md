@@ -25,7 +25,7 @@ Sistem menggunakan:
 
 ------------------------------------------------------------------------
 
-## 1. Arsitektur Sistem
+## Arsitektur Sistem
 
 ``` text
 Staff Collection
@@ -77,7 +77,7 @@ WhatsApp Reply
 
 ------------------------------------------------------------------------
 
-# 2. Prasyarat
+## Prasyarat
 
 Pastikan komputer/server sudah memiliki:
 
@@ -94,14 +94,15 @@ Pastikan komputer/server sudah memiliki:
     webhook dari internet
 
 ------------------------------------------------------------------------
+## Step by Step Set Up
 
-# 3. Clone Repository
+### 1. Clone Repository
 
 Clone repository GitHub:
 
 ``` powershell
-git clone https://github.com/USERNAME/REPOSITORY.git
-cd REPOSITORY
+git clone https://github.com/Voxans/Automated-Visit-Collection-Report-System.git
+cd Automated-Visit-Collection-Report-System
 ```
 
 Pastikan file utama tersedia, misalnya:
@@ -118,7 +119,7 @@ Pastikan file utama tersedia, misalnya:
 
 ------------------------------------------------------------------------
 
-# 4. Konfigurasi Docker
+### 2. Konfigurasi Docker
 
 File `docker-compose.yaml` digunakan untuk menjalankan Evolution API
 beserta service pendukungnya.
@@ -157,7 +158,7 @@ Ctrl + C
 
 ------------------------------------------------------------------------
 
-# 5. Membuat API Key Evolution API
+### 3. Membuat API Key Evolution API
 
 Evolution API membutuhkan API key untuk mengamankan request API.
 
@@ -186,7 +187,7 @@ docker compose up -d
 
 ------------------------------------------------------------------------
 
-# 6. Membuat Environment Variable di PowerShell
+### 4. Membuat Environment Variable di PowerShell
 
 Agar API key tidak perlu ditulis berulang kali pada setiap command:
 
@@ -217,7 +218,7 @@ $env:EVOLUTION_API_KEY
 
 ------------------------------------------------------------------------
 
-# 7. Mengecek Evolution API
+### 5. Mengecek Evolution API
 
 Setelah Docker aktif, cek instance:
 
@@ -230,7 +231,7 @@ Pastikan Evolution API dapat merespons request.
 
 ------------------------------------------------------------------------
 
-# 8. Membuat Instance WhatsApp
+### 6. Membuat Instance WhatsApp
 
 Jika instance belum dibuat, buat instance dengan nama:
 
@@ -268,7 +269,7 @@ berarti nomor WhatsApp belum terhubung atau koneksi terputus.
 
 ------------------------------------------------------------------------
 
-# 9. Menghubungkan Nomor WhatsApp
+### 7. Menghubungkan Nomor WhatsApp
 
 Generate koneksi/QR:
 
@@ -304,7 +305,7 @@ Pastikan:
 
 ------------------------------------------------------------------------
 
-# 10. Menyiapkan Google Sheets
+### 8. Menyiapkan Google Sheets
 
 Buat sebuah Google Spreadsheet.
 
@@ -345,7 +346,7 @@ otomatis.
 
 ------------------------------------------------------------------------
 
-# 11. Menyiapkan Google Drive
+### 9. Menyiapkan Google Drive
 
 Buat folder khusus untuk attachment, misalnya:
 
@@ -386,7 +387,7 @@ Google Apps Script membutuhkan akses ke folder tersebut.
 
 ------------------------------------------------------------------------
 
-# 12. Menyiapkan Groq API
+### 10. Menyiapkan Groq API
 
 Buat API key Groq dan masukkan ke konfigurasi Google Apps Script:
 
@@ -410,7 +411,7 @@ https://api.groq.com/openai/v1/chat/completions
 
 ------------------------------------------------------------------------
 
-# 13. Deploy Google Apps Script
+### 11. Deploy Google Apps Script
 
 Buka Google Apps Script yang berisi kode bot.
 
@@ -460,7 +461,7 @@ URL inilah yang digunakan sebagai destination webhook Evolution API.
 
 ------------------------------------------------------------------------
 
-# 14. Memberikan Permission Google Apps Script
+### 12. Memberikan Permission Google Apps Script
 
 Pada deployment pertama, Google Apps Script biasanya meminta
 authorization.
@@ -479,59 +480,7 @@ milik Anda.
 
 ------------------------------------------------------------------------
 
-# 15. Konfigurasi Webhook Evolution API
-
-Project menggunakan event:
-
-``` text
-MESSAGES_UPSERT
-```
-
-File `webhook.json` digunakan untuk konfigurasi webhook.
-
-Struktur yang digunakan:
-
-``` json
-{
-  "webhook": {
-    "enabled": true,
-    "url": "URL_GOOGLE_APPS_SCRIPT",
-    "webhookByEvents": false,
-    "webhookBase64": true,
-    "events": [
-      "MESSAGES_UPSERT"
-    ]
-  }
-}
-```
-
-Ganti:
-
-``` text
-URL_GOOGLE_APPS_SCRIPT
-```
-
-dengan URL Web App hasil deployment.
-
-Contoh:
-
-``` json
-{
-  "webhook": {
-    "enabled": true,
-    "url": "https://script.google.com/macros/s/DEPLOYMENT_ID/exec",
-    "webhookByEvents": false,
-    "webhookBase64": true,
-    "events": [
-      "MESSAGES_UPSERT"
-    ]
-  }
-}
-```
-
-------------------------------------------------------------------------
-
-# 16. Mengaktifkan Webhook
+### 13. Mengaktifkan Webhook
 
 Dari folder yang berisi `webhook.json`:
 
@@ -556,12 +505,7 @@ Jika berhasil, response akan menampilkan informasi seperti:
   "webhookBase64": true
 }
 ```
-
-------------------------------------------------------------------------
-
-# 17. Mengecek Konfigurasi Webhook
-
-Gunakan:
+untuk mengecek konfigurasi Webhook gunakan:
 
 ``` powershell
 curl.exe -X GET "http://localhost:8080/webhook/find/pkl-collection" `
@@ -588,10 +532,9 @@ menggunakan:
 ``` json
 "webhookBase64": true
 ```
-
 ------------------------------------------------------------------------
 
-# 18. Cloudflare Tunnel
+### 14. Cloudflare Tunnel
 
 Google Apps Script harus dapat menerima webhook dari Evolution API.
 
@@ -654,89 +597,6 @@ ke internet ketika dibutuhkan oleh komponen eksternal.
 
 ------------------------------------------------------------------------
 
-# 20. Format Laporan WhatsApp
-
-Contoh pesan yang dapat dikirim staff:
-
-``` text
-FA MALANG
-Nama: ARUM MADININGSIH
-No Kontrak: 4662601319
-PastDue: 53
-Product: MCY
-Alamat Visit: rumah
-Case kategory: konsumen ada, Unit ada
-Keterangan: BETESEEEEE
-Rencana penyelesaian: pembayaran angsuran
-```
-
-Pesan tersebut dikirim ke Groq dan diubah menjadi struktur data.
-
-------------------------------------------------------------------------
-
-# 21. Pesan dengan Foto
-
-Sistem mendukung:
-
-``` text
-Foto + Caption
-```
-
-Contoh:
-
-``` text
-[PHOTO]
-
-FA MALANG
-Nama: ARUM MADININGSIH
-No Kontrak: 4662601319
-PastDue: 53
-Product: MCY
-Alamat Visit: rumah
-Keterangan: Bertemu dengan konsumen.
-```
-
-Perilakunya:
-
-``` text
-Photo
-  ├──> Google Drive
-  |
-Caption
-  └──> Groq
-          |
-          v
-      Google Sheets
-```
-
-**Isi gambar tidak dianalisis oleh Groq.**
-
-Groq hanya menerima teks/caption.
-
-------------------------------------------------------------------------
-
-# 22. Foto Tanpa Caption
-
-Jika staff hanya mengirim foto tanpa caption:
-
-``` text
-[PHOTO]
-```
-
-maka sistem tidak mengirim gambar ke Groq.
-
-Jika implementasi `doPost()` mensyaratkan adanya text/caption sebelum
-penyimpanan laporan, pesan dapat diabaikan sebagai:
-
-``` text
-no_text_or_caption
-```
-
-Attachment tetap dapat ditangani oleh fungsi penyimpanan attachment
-sesuai implementasi Google Apps Script.
-
-------------------------------------------------------------------------
-
 # 23. Attachment dan `webhookBase64`
 
 Evolution API dapat mengirim informasi media pada event webhook.
@@ -780,41 +640,6 @@ folder.createFile(blob);
 > Struktur field Base64 pada payload harus mengikuti payload aktual
 > Evolution API. Gunakan log webhook untuk memastikan lokasi field media
 > sebelum melakukan parsing.
-
-------------------------------------------------------------------------
-
-# 24. Integrasi Group WhatsApp
-
-Sistem dapat membedakan:
-
-### Personal
-
-``` text
-sender = nomor WhatsApp
-```
-
-### Group
-
-``` text
-sender = group JID
-member = nomor anggota
-```
-
-Contoh Group ID:
-
-``` text
-120363397918514763@g.us
-```
-
-Nomor staff pengirim dapat berasal dari participant/member.
-
-Dengan demikian, Google Sheets dapat menyimpan:
-
-``` text
-Jenis Chat = GROUP
-Group ID = 120363397918514763@g.us
-Nomor WhatsApp = nomor staff
-```
 
 ------------------------------------------------------------------------
 
@@ -1019,168 +844,6 @@ REPORT SAVED
 REPLY SENT
 ```
 
-------------------------------------------------------------------------
-
-# 29. Troubleshooting
-
-## A. Instance `close`
-
-Cek:
-
-``` powershell
-curl.exe "http://localhost:8080/instance/connectionState/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Jika:
-
-``` text
-close
-```
-
-hubungkan kembali nomor WhatsApp menggunakan QR/pairing.
-
-Jika terjadi:
-
-``` text
-device_removed
-```
-
-berarti sesi WhatsApp pada Evolution API telah terputus dan perlu
-dilakukan pairing ulang.
-
-------------------------------------------------------------------------
-
-## B. Webhook `null`
-
-Cek:
-
-``` powershell
-curl.exe -X GET "http://localhost:8080/webhook/find/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Jika:
-
-``` text
-null
-```
-
-berarti webhook belum terkonfigurasi pada instance tersebut.
-
-Jalankan kembali:
-
-``` powershell
-curl.exe -X POST "http://localhost:8080/webhook/set/pkl-collection" `
-    -H "Content-Type: application/json" `
-    -H "apikey: $EVOLUTION_API_KEY" `
-    --data-binary "@webhook.json"
-```
-
-------------------------------------------------------------------------
-
-## C. Error `instance requires property "webhook"`
-
-Pastikan struktur `webhook.json` memiliki wrapper:
-
-``` json
-{
-  "webhook": {
-    ...
-  }
-}
-```
-
-Bukan:
-
-``` json
-{
-  "enabled": true,
-  "url": "...",
-  "events": []
-}
-```
-
-------------------------------------------------------------------------
-
-## D. `webhookBase64` tetap `false`
-
-Pastikan `webhook.json`:
-
-``` json
-"webhookBase64": true
-```
-
-Kemudian jalankan POST konfigurasi ulang:
-
-``` powershell
-curl.exe -X POST "http://localhost:8080/webhook/set/pkl-collection" `
-    -H "Content-Type: application/json" `
-    -H "apikey: $EVOLUTION_API_KEY" `
-    --data-binary "@webhook.json"
-```
-
-Verifikasi:
-
-``` powershell
-curl.exe -X GET "http://localhost:8080/webhook/find/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-------------------------------------------------------------------------
-
-## E. Foto terdeteksi tetapi tidak masuk Google Drive
-
-Periksa:
-
-1.  `DRIVE_FOLDER_ID` benar.
-2.  Yang dimasukkan adalah **Folder ID**, bukan URL lengkap.
-3.  Google Apps Script memiliki permission Google Drive.
-4.  Payload Evolution API benar-benar menyediakan media/Base64.
-5.  Fungsi penyimpanan attachment dipanggil dari `doPost()`.
-6.  MIME type dan data Base64 berhasil dibaca.
-7.  Periksa `Executions` pada Apps Script.
-
-Contoh Folder ID:
-
-``` text
-https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz
-                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                      Folder ID
-```
-
-------------------------------------------------------------------------
-
-## F. Google Apps Script tidak memiliki execution log
-
-Pastikan request benar-benar sampai ke Web App.
-
-Periksa:
-
-``` text
-Apps Script
-→ Executions
-```
-
-Kemudian periksa log Evolution API:
-
-``` powershell
-docker logs -f evolution_api
-```
-
-Cari:
-
-``` text
-WebhookController
-messages.upsert
-destination
-```
-
-Jika Evolution API menunjukkan destination webhook tetapi Apps Script
-tidak menunjukkan execution, periksa URL deployment dan akses Web App.
-
-------------------------------------------------------------------------
-
 # 30. Security Checklist
 
 Sebelum repository dibuat public:
@@ -1208,48 +871,6 @@ node_modules/
 logs/
 ```
 
-------------------------------------------------------------------------
-
-# 31. Contoh Struktur Repository
-
-Struktur repository yang disarankan:
-
-``` text
-whatsapp-collection-bot/
-│
-├── docker-compose.yaml
-├── webhook.json
-├── README.md
-│
-├── google-apps-script/
-│   └── Code.gs
-│
-├── docs/
-│   └── architecture.md
-│
-└── .gitignore
-```
-
-Jika Google Apps Script disimpan dalam satu file:
-
-``` text
-google-apps-script/
-└── Code.gs
-```
-
-Jika script menggunakan beberapa file:
-
-``` text
-google-apps-script/
-├── Config.gs
-├── Webhook.gs
-├── Groq.gs
-├── GoogleDrive.gs
-├── GoogleSheets.gs
-└── Utils.gs
-```
-
-------------------------------------------------------------------------
 
 # 32. Urutan Deployment Singkat
 
@@ -1354,18 +975,6 @@ proses pairing WhatsApp kembali.
 Cloudflare Quick Tunnel juga dapat menghasilkan URL baru ketika tunnel
 dihentikan dan dijalankan kembali. Jika URL yang digunakan sistem
 berubah, periksa kembali konfigurasi yang menggunakan URL tersebut.
-
-------------------------------------------------------------------------
-
-# 35. License
-
-Tambahkan lisensi project sesuai kebutuhan organisasi/perkuliahan.
-
-Contoh:
-
-``` text
-Copyright © 2026
-```
 
 ------------------------------------------------------------------------
 
