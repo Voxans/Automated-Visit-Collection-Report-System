@@ -32,10 +32,10 @@ const CONFIG = {
   // ==========================================================
 
   EVOLUTION_API_URL:
-    'https://enemies-hit-nirvana-elephant.trycloudflare.com',
+    'YOUR_URL_FROM_CLOUDFLARETUNNEL',
 
   EVOLUTION_API_KEY:
-    'XpR4gYJgsK79cMgqfJgacJ4ZA6CKSlWhzepb1FOGaL0=',
+    'YOUR_API_KEY',
 
   EVOLUTION_INSTANCE:
     'pkl-collection',
@@ -46,10 +46,10 @@ const CONFIG = {
   // ==========================================================
 
   GROQ_API_KEY:
-    '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',
+    'YOUR_AI_KEY',
 
   GROQ_MODEL:
-    'openai/gpt-oss-20b',
+    'YOUR_AI_MODEL_NAME',
 
 
   // ==========================================================
@@ -57,7 +57,7 @@ const CONFIG = {
   // ==========================================================
 
   SHEET_NAME:
-    'Laporan Visit',
+    'YOUR_GOOGLE_sHEETS_NAME',
 
 
   // ==========================================================
@@ -65,7 +65,7 @@ const CONFIG = {
   // ==========================================================
 
   DRIVE_FOLDER_ID:
-    '1IcTIkmF8Lv0z4ihZIQYyomocuMV4PbzS',
+    'YOUR_GOOGLE_DRIVE_FOLDER_ID',
 
 
   // ==========================================================
@@ -81,7 +81,7 @@ const CONFIG = {
   // ==========================================================
 
   GROQ_API_URL:
-    'https://api.groq.com/openai/v1/chat/completions',
+    'YOUR_AI_URL',
 
 
   // ==========================================================
