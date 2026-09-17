@@ -302,10 +302,47 @@ Pastikan:
 ``` json
 "state": "open"
 ```
+------------------------------------------------------------------------
+
+### 8. Cloudflare Tunnel
+
+Google Apps Script harus dapat menerima webhook dari Evolution API.
+
+Karena Evolution API saat ini hanya berjalan di:
+
+``` text
+http://localhost:8080
+```
+
+alamat tersebut tidak dapat diakses langsung dari internet.
+
+Jalankan Cloudflare Quick Tunnel:
+
+``` powershell
+cloudflared tunnel --url http://localhost:8080
+```
+
+Cloudflare akan memberikan URL seperti:
+
+``` text
+https://random-name.trycloudflare.com
+```
+
+URL tersebut merupakan public endpoint menuju Evolution API. Masukkan URL tersebut di dalam Google Apps Script bagian **EVOLUTION_API_URL**
+
+Contoh:
+
+```poweshell
+EVOLUTION_API_URL:
+    'https://random-name.trycloudflare.com'
+```
+
+> Quick Tunnel menghasilkan URL yang dapat berubah. Jika URL berubah,
+> konfigurasi yang bergantung pada URL tersebut harus diperbarui.
 
 ------------------------------------------------------------------------
 
-### 8. Menyiapkan Google Sheets
+### 9. Menyiapkan Google Sheets
 
 Buat sebuah Google Spreadsheet.
 
@@ -346,7 +383,7 @@ otomatis.
 
 ------------------------------------------------------------------------
 
-### 9. Menyiapkan Google Drive
+### 10. Menyiapkan Google Drive
 
 Buat folder khusus untuk attachment, misalnya:
 
@@ -387,7 +424,7 @@ Google Apps Script membutuhkan akses ke folder tersebut.
 
 ------------------------------------------------------------------------
 
-### 10. Menyiapkan Groq API
+### 11. Menyiapkan Groq API
 
 Buat API key Groq dan masukkan ke konfigurasi Google Apps Script:
 
@@ -411,7 +448,7 @@ https://api.groq.com/openai/v1/chat/completions
 
 ------------------------------------------------------------------------
 
-### 11. Deploy Google Apps Script
+### 12. Deploy Google Apps Script
 
 Buka Google Apps Script yang berisi kode bot.
 
@@ -461,7 +498,7 @@ URL inilah yang digunakan sebagai destination webhook Evolution API.
 
 ------------------------------------------------------------------------
 
-### 12. Memberikan Permission Google Apps Script
+### 13. Memberikan Permission Google Apps Script
 
 Pada deployment pertama, Google Apps Script biasanya meminta
 authorization.
@@ -480,9 +517,23 @@ milik Anda.
 
 ------------------------------------------------------------------------
 
-### 13. Mengaktifkan Webhook
+### 14. Konfigurasi dan Verifikasi Webhook
 
-Dari folder yang berisi `webhook.json`:
+Pada file bernama `webhook.json`, ubah bagian:
+
+```powershell
+"url": "GOOGLE_APPS_SCRIPT_WEB_APP_DEPLOY_URL",
+```
+
+dengan URL Web App anda
+
+Contoh:
+
+```powershell
+"url": "[GOOGLE_APPS_SCRIPT_WEB_APP_DEPLOY_URL](https://script.google.com/macros/s/DEPLOYMENT_ID/exec)",
+```
+
+Selanjutnya, jalankan
 
 ``` powershell
 curl.exe -X POST "http://localhost:8080/webhook/set/pkl-collection" `
@@ -534,141 +585,8 @@ menggunakan:
 ```
 ------------------------------------------------------------------------
 
-### 14. Cloudflare Tunnel
 
-Google Apps Script harus dapat menerima webhook dari Evolution API.
-
-Jika Evolution API hanya berjalan di:
-
-``` text
-http://localhost:8080
-```
-
-alamat tersebut tidak dapat diakses langsung dari internet.
-
-Jalankan Cloudflare Quick Tunnel:
-
-``` powershell
-cloudflared tunnel --url http://localhost:8080
-```
-
-Cloudflare akan memberikan URL seperti:
-
-``` text
-https://random-name.trycloudflare.com
-```
-
-URL tersebut merupakan public endpoint menuju Evolution API.
-
-> Quick Tunnel menghasilkan URL yang dapat berubah. Jika URL berubah,
-> konfigurasi yang bergantung pada URL tersebut harus diperbarui.
-
-------------------------------------------------------------------------
-
-# 19. Penggunaan Cloudflare pada Arsitektur
-
-``` text
-WhatsApp
-   |
-   v
-Evolution API
-localhost:8080
-   |
-   v
-Cloudflare Tunnel
-https://xxxxx.trycloudflare.com
-   |
-   v
-Internet
-   |
-   v
-Google Apps Script Web App
-```
-
-Untuk webhook Evolution API → Google Apps Script, destination yang
-digunakan tetap URL Google Apps Script:
-
-``` text
-https://script.google.com/macros/s/DEPLOYMENT_ID/exec
-```
-
-Cloudflare Tunnel terutama digunakan agar service lokal dapat diekspos
-ke internet ketika dibutuhkan oleh komponen eksternal.
-
-------------------------------------------------------------------------
-
-# 23. Attachment dan `webhookBase64`
-
-Evolution API dapat mengirim informasi media pada event webhook.
-
-Dengan:
-
-``` json
-"webhookBase64": true
-```
-
-payload dapat menyediakan data Base64 media pada struktur webhook yang
-sesuai.
-
-Google Apps Script kemudian dapat:
-
-1.  membaca payload;
-2.  mendeteksi `imageMessage`;
-3.  mengambil data media/Base64;
-4.  melakukan decode;
-5.  membuat file menggunakan Google Drive;
-6.  menyimpan file ke folder `DRIVE_FOLDER_ID`.
-
-Konsep penyimpanan:
-
-``` javascript
-const folder =
-  DriveApp.getFolderById(
-    CONFIG.DRIVE_FOLDER_ID
-  );
-
-const blob =
-  Utilities.newBlob(
-    decodedBytes,
-    mimeType,
-    filename
-  );
-
-folder.createFile(blob);
-```
-
-> Struktur field Base64 pada payload harus mengikuti payload aktual
-> Evolution API. Gunakan log webhook untuk memastikan lokasi field media
-> sebelum melakukan parsing.
-
-------------------------------------------------------------------------
-
-# 25. Validasi Case Category
-
-Groq mengklasifikasikan laporan ke salah satu dari lima kategori:
-
-``` text
-Konsumen Ada Unit Ada
-Konsumen Ada Unit Tidak Ada
-Konsumen Tidak Ada Unit Ada
-Konsumen Tidak Ada Unit Tidak Ada
-Belum Diketahui
-```
-
-Jika informasi tidak cukup, sistem menggunakan:
-
-``` text
-Belum Diketahui
-```
-
-Kategori tidak boleh dibuat secara bebas oleh model.
-
-Google Apps Script juga melakukan validasi ulang terhadap nilai tersebut
-sebelum disimpan.
-
-------------------------------------------------------------------------
-
-# 26. Testing Google Apps Script
+## Testing Google Apps Script
 
 Sebelum menghubungkan WhatsApp, test Groq menggunakan fungsi:
 
@@ -702,7 +620,7 @@ testWebhookPayload()
 
 ------------------------------------------------------------------------
 
-# 27. Testing End-to-End
+## Testing End-to-End
 
 Setelah semua konfigurasi selesai:
 
@@ -791,7 +709,7 @@ Bot seharusnya mengirim konfirmasi:
 
 ------------------------------------------------------------------------
 
-# 28. Monitoring
+## Monitoring
 
 ## Evolution API
 
@@ -844,7 +762,7 @@ REPORT SAVED
 REPLY SENT
 ```
 
-# 30. Security Checklist
+## Security Checklist
 
 Sebelum repository dibuat public:
 
@@ -872,7 +790,7 @@ logs/
 ```
 
 
-# 32. Urutan Deployment Singkat
+## Urutan Deployment Singkat
 
 Jika melakukan deployment dari awal, urutannya:
 
@@ -926,7 +844,7 @@ Jika melakukan deployment dari awal, urutannya:
 
 ------------------------------------------------------------------------
 
-# 33. Status Sistem yang Diharapkan
+## Status Sistem yang Diharapkan
 
 Sistem dianggap berhasil berjalan apabila seluruh komponen berikut
 aktif:
@@ -950,7 +868,7 @@ aktif:
 
 ------------------------------------------------------------------------
 
-# 34. Catatan Operasional
+## Catatan Operasional
 
 Evolution API berjalan sebagai gateway WhatsApp. Nomor WhatsApp yang
 digunakan harus tetap memiliki sesi WhatsApp yang aktif pada Evolution
