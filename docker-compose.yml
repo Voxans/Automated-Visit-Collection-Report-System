@@ -30,7 +30,7 @@ services:
       # AUTHENTICATION
       # =========================
 
-      AUTHENTICATION_API_KEY: XpR4gYJgsK79cMgqfJgacJ4ZA6CKSlWhzepb1FOGaL0=
+      AUTHENTICATION_API_KEY: 'YOUR_API_KEY'
 
       # =========================
       # LOG
