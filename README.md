@@ -6,56 +6,82 @@ teks/caption menggunakan **Groq AI**, menyimpan hasil terstruktur ke
 **Google Sheets**, serta menyimpan attachment gambar ke **Google
 Drive**.
 
-Sistem menggunakan:
-
--   **Evolution API v2.3.7** sebagai WhatsApp Gateway
--   **WhatsApp Web / Baileys** untuk koneksi nomor WhatsApp
--   **Docker Compose** untuk menjalankan Evolution API beserta
-    database/cache
--   **Google Apps Script (GAS)** sebagai webhook dan backend pemrosesan
--   **Groq API** untuk ekstraksi informasi laporan visit
--   **Google Sheets** sebagai database laporan
--   **Google Drive** sebagai penyimpanan attachment
--   **Cloudflare Tunnel** untuk mengekspos Evolution API secara publik
-    ketika diperlukan
+## Fitur Utama
+ 
+| Kemampuan | Keterangan |
+|---|---|
+| Input fleksibel | Menerima pesan teks maupun gambar dengan caption |
+| Sumber ganda | Mendukung chat personal dan grup |
+| Ekstraksi otomatis | Groq AI mengubah teks bebas menjadi JSON terstruktur |
+| Penyimpanan laporan | Baris baru otomatis ditulis ke Google Sheets |
+| Penyimpanan lampiran | Gambar disimpan ke folder Google Drive |
+| Konfirmasi balik | Bot membalas ke chat atau grup asal setelah data tersimpan |
+ 
+Komponen yang digunakan:
+ 
+| Komponen | Peran |
+|---|---|
+| Evolution API v2.3.7 | WhatsApp Gateway |
+| WhatsApp Web / Baileys | Koneksi nomor WhatsApp |
+| Docker Compose | Menjalankan Evolution API beserta database dan cache |
+| Google Apps Script | Webhook receiver dan backend pemrosesan |
+| Groq API | Ekstraksi informasi laporan visit |
+| Google Sheets | Database laporan |
+| Google Drive | Penyimpanan attachment |
+| Cloudflare Tunnel | Membuka akses publik menuju Evolution API |
 
 ------------------------------------------------------------------------
 
 ## Arsitektur Sistem
 
-``` text
+```
+ARAH MASUK (WhatsApp menuju Google Sheets)
+ 
 Staff Collection
       |
-      | WhatsApp Text / Image + Caption
+      | teks / gambar + caption
       v
 WhatsApp
       |
       v
-Evolution API v2.3.7
+Evolution API v2.3.7  (localhost:8080, di dalam Docker)
       |
-      | MESSAGES_UPSERT
+      | HTTPS keluar, event MESSAGES_UPSERT
       v
-Cloudflare Tunnel
+Google Apps Script Web App  (https://script.google.com/.../exec)
       |
+      +---------------------------+
+      |                           |
+      v                           v
+   Groq API                  Google Drive
+      |                      (attachment)
       v
-Google Apps Script Web App
-      |
-      +----------------------+
-      |                      |
-      v                      v
-   Groq API              Google Drive
-      |                 (Attachment)
-      v
-Structured Report
+Struktur JSON laporan
       |
       v
 Google Sheets
+```
+ 
+```
+ARAH KELUAR (Google Apps Script menuju WhatsApp)
+ 
+Google Apps Script
+      |
+      | perlu memanggil Evolution API untuk mengirim balasan
+      | dan mengambil media Base64
+      v
+Cloudflare Tunnel  (https://nama-acak.trycloudflare.com)
       |
       v
-WhatsApp Reply
+Evolution API v2.3.7  (localhost:8080)
+      |
+      v
+WhatsApp  (balasan ke chat atau grup asal)
 ```
+ 
+**Kenapa Cloudflare Tunnel diperlukan.** Evolution API berjalan di mesin lokal Anda dan tetap bisa melakukan request keluar ke internet, sehingga pengiriman webhook menuju Apps Script tidak memerlukan tunnel sama sekali. Masalahnya ada pada arah sebaliknya: Google Apps Script berjalan di infrastruktur Google dan tidak akan pernah bisa menjangkau `localhost:8080` milik Anda. Tunnel inilah yang memberi Apps Script alamat publik untuk memanggil Evolution API saat mengirim balasan dan mengambil media. Karena itu URL tunnel dimasukkan ke variabel `EVOLUTION_API_URL` di dalam Apps Script, bukan ke konfigurasi Evolution API.
 
-### Alur pesan
+## Alur pesan
 
 1.  Staff mengirim laporan melalui WhatsApp.
 2.  Evolution API menerima pesan.
@@ -72,6 +98,26 @@ WhatsApp Reply
 9.  Bot mengirim konfirmasi kembali ke chat/group WhatsApp.
 
 ------------------------------------------------------------------------
+
+## Struktur Repository
+ 
+```
+.
+├── README.md                 Dokumen ini
+├── TROUBLESHOOTING.md        Penanganan masalah umum
+├── Webhook_Bot.gs            Kode Google Apps Script (webhook, Groq, Sheets, Drive)
+├── docker-compose.yml        Definisi service Evolution API dan pendukungnya
+├── webhook.json              Payload konfigurasi webhook Evolution API
+└── docs/
+    ├── SETUP.md              Instalasi dan konfigurasi langkah demi langkah
+    ├── TESTING.md            Pengujian fungsi dan pengujian end to end
+    ├── OPERATIONS.md         Monitoring, log, dan catatan operasional
+    └── SECURITY.md           Checklist keamanan sebelum repository dipublikasikan
+```
+ 
+> Isi `Webhook_Bot.gs` tidak dijalankan dari repository ini. File tersebut disalin ke sebuah proyek Google Apps Script, lalu dideploy sebagai Web App. Prosesnya dijelaskan di [`docs/SETUP.md`](docs/SETUP.md).
+ 
+---
 
 ## Prasyarat
 
@@ -126,6 +172,18 @@ Fase 7  Sambungkan webhook
 Urutan di atas disusun supaya setiap fase hanya bergantung pada fase sebelumnya. Perhatikan bahwa authorization Apps Script sengaja dilakukan sebelum deploy, karena Web App yang belum pernah diberi permission akan menerima webhook tanpa menghasilkan execution log, dan gejala itu sulit didiagnosis.
  
 -----
+
+## Dokumentasi Lengkap
+ 
+| Dokumen | Isi | Baca ketika |
+|---|---|---|
+| [`docs/SETUP.md`](docs/SETUP.md) | Instalasi dan konfigurasi lengkap | Melakukan deployment dari awal |
+| [`docs/TESTING.md`](docs/TESTING.md) | Uji fungsi Apps Script dan uji end to end | Memverifikasi sistem sudah berjalan |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Monitoring, pembacaan log, catatan harian | Sistem sudah jalan dan perlu dipantau |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | Checklist keamanan dan contoh `.gitignore` | Sebelum repository dipublikasikan |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Gejala, penyebab, dan solusi | Ada yang tidak berjalan sebagaimana mestinya |
+ 
+----
 
 ## Konfigurasi Utama
  
@@ -217,7 +275,7 @@ Jalankan fungsi `setupSheet()` satu kali dari editor Apps Script untuk membuat b
 | Apps Script memiliki batas waktu eksekusi | Attachment berukuran besar berisiko gagal disimpan |
 | Ekstraksi bergantung pada model bahasa | Format laporan yang sangat menyimpang dapat menghasilkan kolom kosong atau salah |
  
-Gejala dan penanganan masing masing batasan tersebut dibahas di [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
+Gejala dan penanganan masing masing batasan tersebut dibahas di [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
  
 ---
 
