@@ -19,10 +19,6 @@ Sistem menggunakan:
 -   **Cloudflare Tunnel** untuk mengekspos Evolution API secara publik
     ketika diperlukan
 
-> **Catatan keamanan:** Jangan commit API key, access token, password
-> database, atau credential lain ke repository GitHub. Gunakan
-> placeholder seperti `CHANGE_THIS_TO_A_RANDOM_SECRET`.
-
 ------------------------------------------------------------------------
 
 ## Arsitektur Sistem
@@ -79,285 +75,115 @@ WhatsApp Reply
 
 ## Prasyarat
 
-Pastikan komputer/server sudah memiliki:
-
--   Docker Desktop
--   Docker Compose
--   PowerShell atau terminal
--   Akun WhatsApp untuk nomor bot
--   Akun Google
--   Google Apps Script
--   Google Sheets
--   Google Drive
--   Groq API Key
--   Cloudflare Tunnel (`cloudflared`) jika Evolution API perlu menerima
-    webhook dari internet
-
-------------------------------------------------------------------------
-## Step by Step Set Up
-
-### 1. Clone Repository
-
-Clone repository GitHub:
-
-``` powershell
-git clone https://github.com/Voxans/Automated-Visit-Collection-Report-System.git
-cd Automated-Visit-Collection-Report-System
-```
-
-Pastikan file utama tersedia, misalnya:
-
-``` text
-.
-├── docker-compose.yaml
-├── webhook.json
-├── Google Apps Script
-└── README.md
-```
-
-> Sesuaikan nama folder/file dengan struktur repository sebenarnya.
+Sebelum memulai, pastikan tersedia:
+ 
+| Kebutuhan | Keterangan |
+|---|---|
+| Docker Desktop dan Docker Compose | Menjalankan Evolution API |
+| PowerShell atau terminal lain | Seluruh contoh perintah ditulis untuk PowerShell |
+| Akun WhatsApp | Nomor yang akan dipakai sebagai bot |
+| Akun Google | Untuk Apps Script, Sheets, dan Drive |
+| Groq API Key | Diambil dari console Groq |
+| cloudflared | Diperlukan agar Apps Script dapat memanggil Evolution API |
+ 
+Catatan tentang nomor WhatsApp: gunakan nomor terpisah yang memang diperuntukkan sebagai bot. Nomor tersebut akan tertaut sebagai perangkat pada Evolution API dan sesinya harus tetap aktif.
 
 ------------------------------------------------------------------------
 
-### 2. Konfigurasi Docker
-
-File `docker-compose.yaml` digunakan untuk menjalankan Evolution API
-beserta service pendukungnya.
-
-Sebelum menjalankan Docker, periksa konfigurasi:
-
-``` powershell
-docker compose config
+## Quick Start
+ 
+Ringkasan tujuh fase berikut hanya untuk memberi gambaran besar. Perintah lengkap beserta verifikasi setiap tahap ada di [`docs/SETUP.md`](docs/SETUP.md).
+ 
 ```
-
-Jika tidak terdapat error, jalankan:
-
-``` powershell
-docker compose up -d
+Fase 1  Siapkan Docker
+        Clone repository, set AUTHENTICATION_API_KEY di docker-compose.yml,
+        lalu jalankan container Evolution API.
+ 
+Fase 2  Hubungkan WhatsApp
+        Buat instance pkl-collection, scan QR, pastikan state bernilai open.
+ 
+Fase 3  Siapkan sisi Google
+        Buat Google Sheet dengan tab "Laporan Visit" dan folder Drive
+        untuk attachment, lalu catat DRIVE_FOLDER_ID.
+ 
+Fase 4  Siapkan Apps Script
+        Buat proyek Apps Script, tempel isi Webhook_Bot.gs,
+        isi CONFIG dengan Groq API Key dan ID Sheet serta Drive.
+ 
+Fase 5  Authorization dan uji fungsi
+        Jalankan setupSheet() dan testGroq() dari editor Apps Script
+        untuk memicu permission Google sekaligus memastikan Groq merespons.
+ 
+Fase 6  Buka jalur balik dan deploy
+        Jalankan Cloudflare Tunnel, masukkan URL nya ke EVOLUTION_API_URL,
+        lalu deploy Apps Script sebagai Web App dan salin URL /exec.
+ 
+Fase 7  Sambungkan webhook
+        Masukkan URL /exec ke webhook.json, kirimkan ke Evolution API,
+        lalu lakukan pengujian end to end.
 ```
+ 
+Urutan di atas disusun supaya setiap fase hanya bergantung pada fase sebelumnya. Perhatikan bahwa authorization Apps Script sengaja dilakukan sebelum deploy, karena Web App yang belum pernah diberi permission akan menerima webhook tanpa menghasilkan execution log, dan gejala itu sulit didiagnosis.
+ 
+-----
 
-Periksa container:
-
-``` powershell
-docker compose ps
-```
-
-Pastikan container Evolution API berada pada status `Up`.
-
-Untuk melihat log:
-
-``` powershell
-docker logs -f evolution_api
-```
-
-Keluar dari log dengan:
-
-``` text
-Ctrl + C
-```
-
-------------------------------------------------------------------------
-
-### 3. Membuat API Key Evolution API
-
-Evolution API membutuhkan API key untuk mengamankan request API.
-
-Pada `docker-compose.yaml`, gunakan secret sendiri, contoh:
-
-``` yaml
+## Konfigurasi Utama
+ 
+Seluruh nilai berikut adalah placeholder. Jangan pernah mengisi nilai asli lalu melakukan commit.
+ 
+**Konfigurasi Evolution API, di `docker-compose.yml`**
+ 
+```yaml
 AUTHENTICATION_API_KEY: CHANGE_THIS_TO_A_RANDOM_SECRET
 ```
-
-Gunakan nilai random yang panjang.
-
-Contoh:
-
-``` yaml
-AUTHENTICATION_API_KEY: "EvolutionBot-CHANGE-THIS-TO-RANDOM-SECRET"
+ 
+**Konfigurasi Google Apps Script, di `Webhook_Bot.gs`**
+ 
+```javascript
+const CONFIG = {
+  EVOLUTION_API_URL: 'https://nama-acak.trycloudflare.com',
+  EVOLUTION_API_KEY: 'CHANGE_THIS_TO_A_RANDOM_SECRET',
+  INSTANCE_NAME:     'pkl-collection',
+  GROQ_API_KEY:      'GROQ_API_KEY_ANDA',
+  GROQ_MODEL:        'openai/gpt-oss-20b',
+  SHEET_NAME:        'Laporan Visit',
+  DRIVE_FOLDER_ID:   'FOLDER_ID_TANPA_URL'
+};
 ```
-
-**Jangan gunakan contoh tersebut pada production.**
-
-Setelah mengubah environment variable, recreate container:
-
-``` powershell
-docker compose down
-docker compose up -d
-```
-
-------------------------------------------------------------------------
-
-### 4. Membuat Environment Variable di PowerShell
-
-Agar API key tidak perlu ditulis berulang kali pada setiap command:
-
-``` powershell
-$EVOLUTION_API_KEY = "API_KEY_ANDA"
-```
-
-Periksa:
-
-``` powershell
-$EVOLUTION_API_KEY
-```
-
-Jika ingin environment variable tersedia untuk proses PowerShell
-berikutnya:
-
-``` powershell
-$env:EVOLUTION_API_KEY = "API_KEY_ANDA"
-```
-
-Kemudian:
-
-``` powershell
-$env:EVOLUTION_API_KEY
-```
-
-> Jangan memasukkan API key asli ke `README.md` atau repository GitHub.
-
-------------------------------------------------------------------------
-
-### 5. Mengecek Evolution API
-
-Setelah Docker aktif, cek instance:
-
-``` powershell
-curl.exe "http://localhost:8080/instance/fetchInstances" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Pastikan Evolution API dapat merespons request.
-
-------------------------------------------------------------------------
-
-### 6. Membuat Instance WhatsApp
-
-Jika instance belum dibuat, buat instance dengan nama:
-
-``` text
-pkl-collection
-```
-
-Instance ini digunakan sebagai koneksi WhatsApp bot.
-
-Setelah instance dibuat, cek status:
-
-``` powershell
-curl.exe "http://localhost:8080/instance/connectionState/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Status yang diharapkan:
-
-``` json
+ 
+**Konfigurasi webhook, di `webhook.json`**
+ 
+```json
 {
-  "instance": {
-    "instanceName": "pkl-collection",
-    "state": "open"
+  "webhook": {
+    "enabled": true,
+    "url": "GOOGLE_APPS_SCRIPT_WEB_APP_DEPLOY_URL",
+    "webhookByEvents": false,
+    "base64": true,
+    "events": [
+      "MESSAGES_UPSERT"
+    ]
   }
 }
 ```
-
-Jika:
-
-``` text
-state = close
+ 
+> **Penting.** Field yang dikirim di dalam body request bernama `base64`, sedangkan `webhookBase64` adalah nama field yang muncul pada **response** ketika Anda memanggil `webhook/find`. Keduanya merujuk pengaturan yang sama tetapi tidak boleh saling ditukar. Mengganti `base64` menjadi `webhookBase64` di dalam `webhook.json` akan membuat media Base64 tidak ikut terkirim.
+ 
+Ambil `DRIVE_FOLDER_ID` dari potongan terakhir URL folder, bukan seluruh URL:
+ 
 ```
-
-berarti nomor WhatsApp belum terhubung atau koneksi terputus.
-
-------------------------------------------------------------------------
-
-### 7. Menghubungkan Nomor WhatsApp
-
-Generate koneksi/QR:
-
-``` powershell
-curl.exe -X GET "http://localhost:8080/instance/connect/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
+https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz
+                                       └───────────┬───────────┘
+                                             DRIVE_FOLDER_ID
 ```
-
-Evolution API akan memberikan informasi pairing/QR sesuai kondisi
-instance.
-
-Scan QR menggunakan:
-
-``` text
-WhatsApp
-→ Perangkat tertaut
-→ Tautkan perangkat
-→ Scan QR
+ 
+---
+ 
+## Data yang Disimpan
+ 
+Setiap laporan yang berhasil diproses menghasilkan satu baris pada sheet `Laporan Visit` dengan kolom berikut:
+ 
 ```
-
-Setelah berhasil, cek:
-
-``` powershell
-curl.exe "http://localhost:8080/instance/connectionState/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Pastikan:
-
-``` json
-"state": "open"
-```
-------------------------------------------------------------------------
-
-### 8. Cloudflare Tunnel
-
-Google Apps Script harus dapat menerima webhook dari Evolution API.
-
-Karena Evolution API saat ini hanya berjalan di:
-
-``` text
-http://localhost:8080
-```
-
-alamat tersebut tidak dapat diakses langsung dari internet.
-
-Jalankan Cloudflare Quick Tunnel:
-
-``` powershell
-cloudflared tunnel --url http://localhost:8080
-```
-
-Cloudflare akan memberikan URL seperti:
-
-``` text
-https://random-name.trycloudflare.com
-```
-
-URL tersebut merupakan public endpoint menuju Evolution API. Masukkan URL tersebut di dalam Google Apps Script bagian **EVOLUTION_API_URL**
-
-Contoh:
-
-```javascript
-EVOLUTION_API_URL:
-    'https://random-name.trycloudflare.com'
-```
-
-> Quick Tunnel menghasilkan URL yang dapat berubah. Jika URL berubah,
-> konfigurasi yang bergantung pada URL tersebut harus diperbarui.
-
-------------------------------------------------------------------------
-
-### 9. Menyiapkan Google Sheets
-
-Buat sebuah Google Spreadsheet.
-
-Buat sheet dengan nama:
-
-``` text
-Laporan Visit
-```
-
-Google Apps Script akan menggunakan sheet tersebut sebagai tempat
-penyimpanan laporan.
-
-Kolom yang digunakan sistem antara lain:
-
-``` text
 ID
 Timestamp
 Tanggal
@@ -370,531 +196,30 @@ Past Due
 Nomor WhatsApp
 Product
 Alamat Visit
-Case kategory
+Case Kategori
 Keterangan
-Rencana penyelesaian
+Rencana Penyelesaian
 Pesan Asli
 Ada Attachment
 ```
-
-Jika fungsi `setupSheet()` tersedia pada script, jalankan fungsi
-tersebut satu kali dari Apps Script Editor untuk membuat header secara
-otomatis.
-
-------------------------------------------------------------------------
-
-### 10. Menyiapkan Google Drive
-
-Buat folder khusus untuk attachment, misalnya:
-
-``` text
-WhatsApp Collection Attachments
-```
-
-Ambil **Folder ID**, bukan seluruh URL folder.
-
-Contoh URL:
-
-``` text
-https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz
-```
-
-Maka:
-
-``` text
-DRIVE_FOLDER_ID
-```
-
-adalah:
-
-``` text
-1AbCdEfGhIjKlMnOpQrStUvWxYz
-```
-
-Pada konfigurasi Google Apps Script:
-
-``` javascript
-const CONFIG = {
-  ...
-  DRIVE_FOLDER_ID: '1AbCdEfGhIjKlMnOpQrStUvWxYz'
-};
-```
-
-Google Apps Script membutuhkan akses ke folder tersebut.
-
-------------------------------------------------------------------------
-
-### 11. Menyiapkan Groq API
-
-Buat API key Groq dan masukkan ke konfigurasi Google Apps Script:
-
-``` javascript
-GROQ_API_KEY: 'GROQ_API_KEY_ANDA'
-```
-
-Model yang digunakan project ini dikonfigurasi pada:
-
-``` javascript
-GROQ_MODEL: 'openai/gpt-oss-20b'
-```
-
-API endpoint:
-
-``` text
-https://api.groq.com/openai/v1/chat/completions
-```
-
-> API key Groq bersifat rahasia. Jangan commit key asli ke GitHub.
-
-------------------------------------------------------------------------
-
-### 12. Deploy Google Apps Script
-
-Buka Google Apps Script yang berisi kode bot.
-
-Pastikan script memiliki:
-
-``` javascript
-function doPost(e) {
-    ...
-}
-```
-
-dan:
-
-``` javascript
-function doGet() {
-    ...
-}
-```
-
-Kemudian:
-
-1.  Klik **Deploy**
-
-2.  Pilih **New deployment**
-
-3.  Pilih tipe **Web app**
-
-4.  Set **Execute as** → akun Anda
-
-5.  Set akses sesuai kebutuhan webhook, umumnya:
-
-    ``` text
-    Anyone
-    ```
-
-6.  Klik **Deploy**
-
-7.  Salin URL Web App.
-
-Contoh:
-
-``` text
-https://script.google.com/macros/s/DEPLOYMENT_ID/exec
-```
-
-URL inilah yang digunakan sebagai destination webhook Evolution API.
-
-------------------------------------------------------------------------
-
-### 13. Memberikan Permission Google Apps Script
-
-Pada deployment pertama, Google Apps Script biasanya meminta
-authorization.
-
-Jalankan fungsi yang memerlukan:
-
--   Google Sheets
--   Google Drive
--   UrlFetchApp
-
-Kemudian berikan permission pada akun Google yang digunakan.
-
-Jika Google menampilkan peringatan aplikasi belum diverifikasi,
-lanjutkan sesuai akun/project yang digunakan dan pastikan script memang
-milik Anda.
-
-------------------------------------------------------------------------
-
-### 14. Konfigurasi dan Verifikasi Webhook
-
-Pada file bernama `webhook.json`, ubah bagian:
-
-```json
-"url": "GOOGLE_APPS_SCRIPT_WEB_APP_DEPLOY_URL",
-```
-
-dengan URL Web App anda
-
-Contoh:
-
-```json
-"url": "https://script.google.com/macros/s/DEPLOYMENT_ID/exec",
-```
-
-Selanjutnya, jalankan
-
-``` powershell
-curl.exe -X POST "http://localhost:8080/webhook/set/pkl-collection" `
-    -H "Content-Type: application/json" `
-    -H "apikey: $EVOLUTION_API_KEY" `
-    --data-binary "@webhook.json"
-```
-
-Jika berhasil, response akan menampilkan informasi seperti:
-
-``` json
-{
-  "id": "...",
-  "url": "https://script.google.com/macros/s/.../exec",
-  "enabled": true,
-  "events": [
-    "MESSAGES_UPSERT"
-  ],
-  "webhookByEvents": false,
-  "webhookBase64": true
-}
-```
-untuk mengecek konfigurasi Webhook gunakan:
-
-``` powershell
-curl.exe -X GET "http://localhost:8080/webhook/find/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Pastikan:
-
-``` json
-"enabled": true
-```
-
-dan:
-
-``` json
-"events": [
-  "MESSAGES_UPSERT"
-]
-```
-
-Untuk attachment yang membutuhkan data media Base64, konfigurasi project
-menggunakan:
-
-``` json
-"webhookBase64": true
-```
-------------------------------------------------------------------------
-
-
-## Testing Google Apps Script
-
-Sebelum menghubungkan WhatsApp, test Groq menggunakan fungsi:
-
-``` javascript
-testGroq()
-```
-
-Test group:
-
-``` javascript
-testGroupPayload()
-```
-
-Test personal:
-
-``` javascript
-testPersonalPayload()
-```
-
-Test attachment:
-
-``` javascript
-testAttachmentScenarios()
-```
-
-Jika tersedia pada script, test webhook:
-
-``` javascript
-testWebhookPayload()
-```
-
-------------------------------------------------------------------------
-
-## Testing End-to-End
-
-Setelah semua konfigurasi selesai:
-
-### Step 1 --- Docker
-
-``` powershell
-docker compose ps
-```
-
-Pastikan Evolution API aktif.
-
-### Step 2 --- WhatsApp
-
-``` powershell
-curl.exe "http://localhost:8080/instance/connectionState/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Pastikan:
-
-``` text
-state = open
-```
-
-### Step 3 --- Webhook
-
-``` powershell
-curl.exe -X GET "http://localhost:8080/webhook/find/pkl-collection" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-Pastikan:
-
-``` text
-enabled = true
-events = MESSAGES_UPSERT
-```
-
-### Step 4 --- Kirim pesan
-
-Kirim laporan dari WhatsApp Group:
-
-``` text
-FA MALANG
-Nama: Ahmad
-Kontrak: 123456789
-Past Due: 10
-Konsumen ada dan unit ada.
-```
-
-### Step 5 --- Periksa Google Apps Script
-
-Buka:
-
-``` text
-Google Apps Script
-→ Executions
-```
-
-Pastikan `doPost` dieksekusi.
-
-### Step 6 --- Periksa Google Sheets
-
-Pastikan laporan masuk ke:
-
-``` text
-Laporan Visit
-```
-
-### Step 7 --- Periksa Google Drive
-
-Jika pesan mengandung attachment, periksa folder:
-
-``` text
-Google Drive
-→ Folder Attachment
-```
-
-### Step 8 --- Periksa WhatsApp
-
-Bot seharusnya mengirim konfirmasi:
-
-``` text
-✅ LAPORAN VISIT BERHASIL DISIMPAN
-```
-
-------------------------------------------------------------------------
-
-## Monitoring
-
-## Evolution API
-
-``` powershell
-docker logs -f evolution_api
-```
-
-Cari event:
-
-``` text
-messages.upsert
-```
-
-Payload akan menunjukkan informasi seperti:
-
-``` text
-remoteJid
-participant
-messageType
-imageMessage
-caption
-```
-
-------------------------------------------------------------------------
-
-## Google Apps Script
-
-Buka:
-
-``` text
-Apps Script
-→ Executions
-```
-
-Periksa execution dari:
-
-``` text
-doPost
-```
-
-Log dapat digunakan untuk melihat:
-
-``` text
-FULL PAYLOAD
-FINAL MESSAGE TO GROQ
-ATTACHMENT INFO
-CHAT INFO
-GROQ RESULT
-REPORT SAVED
-REPLY SENT
-```
-
-## Security Checklist
-
-Sebelum repository dibuat public:
-
--   [ ] Tidak ada `GROQ_API_KEY` asli.
--   [ ] Tidak ada `AUTHENTICATION_API_KEY` asli.
--   [ ] Tidak ada password database.
--   [ ] Tidak ada credential Google.
--   [ ] Tidak ada token WhatsApp.
--   [ ] Tidak ada URL webhook yang mengandung secret.
--   [ ] Tidak ada file service-account JSON.
--   [ ] Tidak ada `.env` berisi secret.
--   [ ] Gunakan `.gitignore`.
-
-Contoh `.gitignore`:
-
-``` gitignore
-.env
-*.env
-credentials.json
-service-account.json
-*.pem
-*.key
-node_modules/
-logs/
-```
-
-
-## Urutan Deployment Singkat
-
-Jika melakukan deployment dari awal, urutannya:
-
-``` text
-1. Clone repository
-        ↓
-2. Konfigurasi docker-compose.yaml
-        ↓
-3. Buat Evolution API key
-        ↓
-4. docker compose up -d
-        ↓
-5. Buat instance pkl-collection
-        ↓
-6. Scan QR WhatsApp
-        ↓
-7. Pastikan state = open
-        ↓
-8. Buat Google Sheet
-        ↓
-9. Buat folder Google Drive
-        ↓
-10. Ambil DRIVE_FOLDER_ID
-        ↓
-11. Masukkan Groq API Key
-        ↓
-12. Deploy Google Apps Script sebagai Web App
-        ↓
-13. Salin URL /exec
-        ↓
-14. Update webhook.json
-        ↓
-15. Set webhook Evolution API
-        ↓
-16. Pastikan MESSAGES_UPSERT aktif
-        ↓
-17. Pastikan webhookBase64 = true
-        ↓
-18. Jalankan Cloudflare Tunnel jika diperlukan
-        ↓
-19. Kirim test message
-        ↓
-20. Kirim test image + caption
-        ↓
-21. Verifikasi Google Sheets
-        ↓
-22. Verifikasi Google Drive
-        ↓
-23. Verifikasi reply WhatsApp
-```
-
-------------------------------------------------------------------------
-
-## Status Sistem yang Diharapkan
-
-Sistem dianggap berhasil berjalan apabila seluruh komponen berikut
-aktif:
-
-  Komponen                    Kondisi
-  --------------------------- -------------------------------
-  Docker                      Running
-  Evolution API               Running
-  Instance `pkl-collection`   `open`
-  WhatsApp                    Connected
-  Webhook                     Enabled
-  Event                       `MESSAGES_UPSERT`
-  `webhookBase64`             `true`
-  Google Apps Script          Deployed
-  Google Sheets               Dapat ditulis
-  Google Drive                Dapat ditulis
-  Groq API                    Dapat menerima request
-  Text report                 Masuk Sheets
-  Image + caption             Caption → Groq, Image → Drive
-  WhatsApp reply              Terkirim
-
-------------------------------------------------------------------------
-
-## Catatan Operasional
-
-Evolution API berjalan sebagai gateway WhatsApp. Nomor WhatsApp yang
-digunakan harus tetap memiliki sesi WhatsApp yang aktif pada Evolution
-API.
-
-Jika sesi terputus, periksa:
-
-``` powershell
-curl.exe "http://localhost:8080/instance/fetchInstances" `
-    -H "apikey: $EVOLUTION_API_KEY"
-```
-
-dan:
-
-``` powershell
-docker logs -f evolution_api
-```
-
-Jika status kembali `close` atau terdapat `device_removed`, lakukan
-proses pairing WhatsApp kembali.
-
-Cloudflare Quick Tunnel juga dapat menghasilkan URL baru ketika tunnel
-dihentikan dan dijalankan kembali. Jika URL yang digunakan sistem
-berubah, periksa kembali konfigurasi yang menggunakan URL tersebut.
-
-------------------------------------------------------------------------
+ 
+Jalankan fungsi `setupSheet()` satu kali dari editor Apps Script untuk membuat baris header secara otomatis, sehingga urutan kolom dijamin sesuai dengan yang ditulis oleh script.
+ 
+---
+
+## Batasan yang Diketahui
+ 
+| Batasan | Dampak |
+|---|---|
+| Cloudflare Quick Tunnel menghasilkan URL acak | URL berubah setiap tunnel dijalankan ulang, sehingga `EVOLUTION_API_URL` harus diperbarui |
+| Sesi WhatsApp bergantung pada perangkat tertaut | Jika sesi terputus atau perangkat dihapus, perlu pairing ulang |
+| Groq memiliki rate limit | Lonjakan laporan dalam waktu singkat dapat menyebabkan kegagalan ekstraksi |
+| Apps Script memiliki batas waktu eksekusi | Attachment berukuran besar berisiko gagal disimpan |
+| Ekstraksi bergantung pada model bahasa | Format laporan yang sangat menyimpang dapat menghasilkan kolom kosong atau salah |
+ 
+Gejala dan penanganan masing masing batasan tersebut dibahas di [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
+ 
+---
 
 ## Ringkasan
 
