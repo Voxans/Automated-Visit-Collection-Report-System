@@ -2,7 +2,7 @@
 
 Dokumen ini berisi instalasi dan konfigurasi lengkap dari nol hingga sistem menerima laporan pertama. Seluruh perintah ditulis untuk **PowerShell** di Windows. Jika Anda memakai bash, sesuaikan cara menetapkan environment variable dan penulisan tanda kutip pada `curl`.
 
-Sebelum mulai, baca [Prasyarat di README](../README.md#prasyarat) dan pastikan Docker Desktop sudah berjalan.
+Sebelum mulai, baca Prasyarat di README dan pastikan Docker Desktop sudah berjalan.
 
 ---
 
@@ -163,14 +163,6 @@ Laporan Visit
 
 Penulisan harus sama persis, termasuk spasi dan huruf kapitalnya, karena script mencari tab berdasarkan nama tersebut. Tab bernama `Sheet1` atau `laporan visit` tidak akan dikenali.
 
-Ambil `SHEET_ID` dari URL spreadsheet:
-
-```
-https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit
-                                      └───────────┬───────────┘
-                                                SHEET_ID
-```
-
 Baris header belum perlu dibuat manual. Script akan membuatnya sendiri di Langkah 12 sehingga urutan kolom dijamin sesuai dengan yang ditulis oleh kode.
 
 ## Langkah 9. Membuat folder Google Drive
@@ -195,11 +187,12 @@ Pastikan spreadsheet dan folder Drive berada pada akun Google yang sama dengan a
 
 ## Langkah 10. Membuat proyek dan menempelkan kode
 
-1. Buka `https://script.google.com`, lalu pilih **New project**.
-2. Beri nama proyek, misalnya `WhatsApp Visit Report Bot`.
-3. Hapus seluruh isi berkas `Code.gs` bawaan.
-4. Salin seluruh isi `Webhook_Bot.gs` dari repository ini, lalu tempelkan ke editor.
-5. Simpan dengan `Ctrl + S`.
+1. Pada Google Sheets yang akan digunakan, klik bagian Extensions.
+2. Klik bagian Apps Script dan Anda akan langsung dibawa ke project yang terhubung langsung dengan Google Sheets.
+3. Beri nama proyek, misalnya `WhatsApp Visit Report Bot`.
+4. Hapus seluruh isi berkas `Code.gs` bawaan.
+5. Salin seluruh isi `Webhook_Bot.gs` dari repository ini, lalu tempelkan ke editor.
+6. Simpan dengan `Ctrl + S`.
 
 Kode tidak dijalankan dari repository. Repository hanya menyimpan sumbernya agar dapat diversioning; yang benar benar dieksekusi adalah salinan di dalam proyek Apps Script.
 
@@ -355,7 +348,7 @@ Sistem sekarang siap menerima laporan pertama. Lanjutkan ke [`TESTING.md`](TESTI
 
 Sebelum melakukan commit, jalankan checklist di [`SECURITY.md`](SECURITY.md). Pada titik ini repository lokal Anda kemungkinan besar memuat API key Evolution, Groq API Key, dan URL Web App produksi, yang ketiganya tidak boleh ikut terdorong ke GitHub.
 
-Jika ada tahap yang gagal, gejala dan penanganannya dibahas di [`TROUBLESHOOTING.md`](../TROUBLESHOOTING.md).
+Jika ada tahap yang gagal, gejala dan penanganannya dibahas di [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
 ---
 
@@ -390,5 +383,3 @@ curl.exe -s -X POST "http://localhost:8080/webhook/set/pkl-collection" `
 curl.exe -s -X GET "http://localhost:8080/webhook/find/pkl-collection" `
   -H "apikey: $env:EVOLUTION_API_KEY"
 ```
-
-Langkah yang tidak muncul di ringkasan ini, yaitu pembuatan Sheet dan folder Drive, pengisian CONFIG, authorization, serta deploy Web App, seluruhnya dilakukan melalui antarmuka web dan tidak memiliki padanan perintah.
